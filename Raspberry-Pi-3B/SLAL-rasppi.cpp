@@ -2,7 +2,7 @@
 * Sir Locks-A-Lot - Raspberry Pi Server
 * Version: 1.0
 *
-* Filename: door_server.cpp
+* Filename: SLAL-rasppi.cpp
 * 
 * Description:
 * Central relay and database server for door control system
@@ -11,10 +11,10 @@
 *
 * Compilation:
 * sudo apt-get install libsqlite3-dev libserialport-dev
-* g++ -o door_server door_server.cpp -lsqlite3 -lserialport -lpthread
+* g++ -o SLAL-rasppi.cpp -lsqlite3 -lserialport -lpthread
 *
 * Usage:
-* ./door_server
+* ./SLAL-rasppi
 */
 
 #include <iostream>
