@@ -1,6 +1,6 @@
 /*
 * Sir Locks-A-Lot - Enhanced Version
-* Version: 2.0
+* Version: 1.8
 *
 * Filename: SLAL_windows_wifi.cpp
 *
@@ -53,13 +53,8 @@ public:
             return;
         }
 
-        // Create socket
-        sock = socket(AF_INET, SOCK_STREAM, 0);
-        if (sock == INVALID_SOCKET) {
-            cout << "Socket creation failed" << endl;
-            WSACleanup();
-            return;
-        }
+        // Don't create socket here - create it in connectToRaspberryPi()
+        sock = INVALID_SOCKET;
 
         // Setup server address
         server_addr.sin_family = AF_INET;
@@ -77,14 +72,44 @@ public:
     }
 
     bool connectToRaspberryPi() {
-        if (connect(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
-            cout << "Connection to Raspberry Pi failed. Operating in offline mode." << endl;
+        // Close existing socket if open
+        if (sock != INVALID_SOCKET) {
+            closesocket(sock);
+        }
+
+        // Create new socket
+        sock = socket(AF_INET, SOCK_STREAM, 0);
+        if (sock == INVALID_SOCKET) {
+            cout << "Socket creation failed. Error: " << WSAGetLastError() << endl;
             connected = false;
-            this_thread::sleep_for(chrono::seconds(2));
             return false;
         }
+
+        // Set socket options for better reconnection
+        int opt = 1;
+        setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char*)&opt, sizeof(opt));
+
+        // Set connection timeout
+        DWORD timeout = 5000; // 5 seconds
+        setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
+        setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (char*)&timeout, sizeof(timeout));
+
+        cout << "Attempting to connect to " << RASPBERRY_PI_IP << ":" << PORT << endl;
+
+        if (connect(sock, (struct sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
+            int error = WSAGetLastError();
+            cout << "Connection to Raspberry Pi failed. Error: " << error << endl;
+            cout << "Operating in offline mode." << endl;
+            closesocket(sock);
+            sock = INVALID_SOCKET;
+            connected = false;
+            this_thread::sleep_for(chrono::seconds(1));
+            return false;
+        }
+
         connected = true;
         doorStatus = "CONNECTED";
+        cout << "Successfully connected to Raspberry Pi!" << endl;
         return true;
     }
 
@@ -128,10 +153,13 @@ public:
 
         int result = send(sock, jsonMessage.c_str(), jsonMessage.length(), 0);
         if (result == SOCKET_ERROR) {
-            cout << "Send failed. Connection may be lost." << endl;
+            int error = WSAGetLastError();
+            cout << "Send failed. Error: " << error << ". Connection may be lost." << endl;
             connected = false;
             return false;
         }
+
+        cout << "Sent to Pi: " << jsonMessage << endl;
         return true;
     }
 
@@ -143,6 +171,7 @@ public:
 
         if (bytesReceived > 0) {
             buffer[bytesReceived] = '\0';
+            cout << "Received from Pi: " << string(buffer) << endl;
             return string(buffer);
         }
         else if (bytesReceived == 0) {
@@ -150,7 +179,12 @@ public:
             connected = false;
         }
         else {
-            cout << "Receive failed" << endl;
+            int error = WSAGetLastError();
+            if (error == WSAEWOULDBLOCK || error == WSAETIMEDOUT) {
+                // No data available or timeout - not an error
+                return "";
+            }
+            cout << "Receive failed. Error: " << error << endl;
             connected = false;
         }
         return "";
@@ -232,6 +266,8 @@ public:
     }
 
     void checkForIncomingMessages() {
+        if (!connected) return;
+
         // Set socket to non-blocking mode to check for messages without waiting
         u_long mode = 1;
         ioctlsocket(sock, FIONBIO, &mode);
@@ -303,9 +339,11 @@ public:
                 cout << "Attempting to connect to Raspberry Pi..." << endl;
                 if (connectToRaspberryPi()) {
                     doorStatus = "RECONNECTED";
+                    cout << "Reconnection successful!" << endl;
                 }
                 else {
                     doorStatus = "CONNECTION FAILED";
+                    cout << "Reconnection failed. Check Pi server and network." << endl;
                 }
                 this_thread::sleep_for(chrono::seconds(1));
             }
