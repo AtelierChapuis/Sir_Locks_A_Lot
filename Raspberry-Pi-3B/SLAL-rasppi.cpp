@@ -259,12 +259,17 @@ public:
     }
     
     void sendToSerial(const string& message) {
-        if (!serial_connected) return;
+        if (!serial_connected) {
+            cout << "Serial not connected - cannot send to STM32" << endl;
+            return;
+        }
         
         string msg_with_newline = message + "\n";
+        cout << "Sending to STM32: " << message << endl;
+        
         sp_return result = sp_blocking_write(serial_port, msg_with_newline.c_str(), msg_with_newline.length(), 1000);
         if (result < 0) {
-            cerr << "Serial write failed" << endl;
+            cerr << "Serial write failed: " << sp_last_error_message() << endl;
         } else {
             cout << "Sent to STM32: " << message << endl;
         }
