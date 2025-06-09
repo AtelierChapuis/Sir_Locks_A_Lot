@@ -25,6 +25,7 @@
 #include <sstream>
 #include <mutex>
 #include <queue>
+#include <algorithm>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -273,8 +274,8 @@ public:
             buffer[result] = '\0';
             string received(buffer);
             // Remove newline characters
-            received.erase(remove(received.begin(), received.end(), '\n'), received.end());
-            received.erase(remove(received.begin(), received.end(), '\r'), received.end());
+            received.erase(std::remove(received.begin(), received.end(), '\n'), received.end());
+            received.erase(std::remove(received.begin(), received.end(), '\r'), received.end());
             
             if (!received.empty()) {
                 cout << "Received from STM32: " << received << endl;
