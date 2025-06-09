@@ -1,8 +1,8 @@
 /*
 * Sir Locks-A-Lot - Raspberry Pi Server
-* Version: 1.0
+* Version: 1.8
 *
-* Filename: SLAL-rasppi.cpp
+* Filename: door_server.cpp
 * 
 * Description:
 * Central relay and database server for door control system
@@ -11,10 +11,10 @@
 *
 * Compilation:
 * sudo apt-get install libsqlite3-dev libserialport-dev
-* g++ -o SLAL-rasppi.cpp -lsqlite3 -lserialport -lpthread
+* g++ -o door_server door_server.cpp -lsqlite3 -lserialport -lpthread
 *
 * Usage:
-* ./SLAL-rasppi
+* ./door_server
 */
 
 #include <iostream>
@@ -30,6 +30,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <cstring>
 #include <sqlite3.h>
 #include <libserialport.h>
 #include <ctime>
@@ -135,21 +138,24 @@ public:
             return;
         }
         
-        // Allow socket reuse
+        // Allow socket reuse and prevent "Address already in use" errors
         int opt = 1;
         setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+        
+        // Set socket to allow immediate reuse
+        setsockopt(server_socket, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt));
         
         server_addr.sin_family = AF_INET;
         server_addr.sin_addr.s_addr = INADDR_ANY;
         server_addr.sin_port = htons(8080);
         
         if (bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1) {
-            cerr << "Bind failed" << endl;
+            cerr << "Bind failed: " << strerror(errno) << endl;
             return;
         }
         
-        if (listen(server_socket, 1) == -1) {
-            cerr << "Listen failed" << endl;
+        if (listen(server_socket, 5) == -1) {  // Increased backlog to 5
+            cerr << "Listen failed: " << strerror(errno) << endl;
             return;
         }
         
@@ -273,7 +279,7 @@ public:
         if (result > 0) {
             buffer[result] = '\0';
             string received(buffer);
-            // Remove newline characters
+            // Remove newline characters using std::remove
             received.erase(std::remove(received.begin(), received.end(), '\n'), received.end());
             received.erase(std::remove(received.begin(), received.end(), '\r'), received.end());
             
@@ -309,8 +315,15 @@ public:
             cout << "Received from laptop: " << received << endl;
             return received;
         } else if (result == 0) {
-            cout << "Client disconnected" << endl;
+            cout << "Client disconnected gracefully" << endl;
             client_connected = false;
+        } else {
+            int error = errno;
+            if (error != EAGAIN && error != EWOULDBLOCK) {
+                cout << "Client receive error: " << strerror(error) << endl;
+                client_connected = false;
+            }
+            // EAGAIN/EWOULDBLOCK means no data available - not an error
         }
         return "";
     }
@@ -381,22 +394,38 @@ public:
         while (running) {
             cout << "Waiting for client connection..." << endl;
             client_len = sizeof(client_addr);
+            
+            // Set accept timeout to prevent blocking forever
+            struct timeval timeout;
+            timeout.tv_sec = 1;
+            timeout.tv_usec = 0;
+            setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+            
             client_socket = accept(server_socket, (struct sockaddr*)&client_addr, &client_len);
             
             if (client_socket != -1) {
                 client_connected = true;
                 cout << "Client connected from " << inet_ntoa(client_addr.sin_addr) << endl;
                 
+                // Set client socket to non-blocking for better handling
+                int flags = fcntl(client_socket, F_GETFL, 0);
+                fcntl(client_socket, F_SETFL, flags | O_NONBLOCK);
+                
                 // Handle this client in a separate thread
                 thread client_thread(&DoorServer::handleClient, this);
                 client_thread.join();
                 
+                cout << "Closing client connection..." << endl;
                 close(client_socket);
                 client_connected = false;
                 cout << "Client disconnected" << endl;
+            } else {
+                if (errno != EAGAIN && errno != EWOULDBLOCK) {
+                    cerr << "Accept failed: " << strerror(errno) << endl;
+                }
             }
             
-            this_thread::sleep_for(chrono::milliseconds(1000));
+            this_thread::sleep_for(chrono::milliseconds(500));
         }
     }
     
