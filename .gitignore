@@ -1,0 +1,227 @@
+# Sir Locks-A-Lot - Multi-Platform Door Control System
+# .gitignore file for Windows/Raspberry Pi/STM32 project
+
+##############################################################################
+# COMPILED BINARIES & EXECUTABLES
+##############################################################################
+
+# Windows executables
+*.exe
+*.dll
+*.pdb
+*.ilk
+*.obj
+
+# Linux/Raspberry Pi executables
+door_server
+door_client
+*_server
+*_client
+
+# General compiled files
+*.o
+*.a
+*.so
+*.dylib
+
+##############################################################################
+# RUNTIME DATA & LOGS
+##############################################################################
+
+# Database files (runtime data)
+*.db
+*.sqlite
+*.sqlite3
+door_log.db
+
+# Log files
+*.log
+*.txt
+20*.txt              # Date-formatted log files (YYYY-MM-DD.txt)
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+
+##############################################################################
+# WINDOWS DEVELOPMENT
+##############################################################################
+
+# Visual Studio
+.vs/
+*.vcxproj.user
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+bld/
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# MinGW/MSYS2
+*.exe.stackdump
+
+##############################################################################
+# LINUX/RASPBERRY PI DEVELOPMENT
+##############################################################################
+
+# Build directories
+build/
+Build/
+BUILD/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+
+# Autotools
+configure
+config.log
+config.status
+autom4te.cache/
+aclocal.m4
+
+# Core dumps
+core
+core.*
+
+##############################################################################
+# STM32 DEVELOPMENT
+##############################################################################
+
+# STM32CubeIDE
+.metadata/
+.project
+.cproject
+.settings/
+Drivers/            # HAL libraries (regenerated)
+Middlewares/        # Middleware (regenerated)
+
+# Keil µVision
+*.uvproj
+*.uvopt
+*.uvgui*
+Objects/
+Listings/
+*.axf
+*.htm
+*.lnp
+*.map
+*.dep
+*.d
+
+# IAR Embedded Workbench
+Debug/
+Release/
+settings/
+*.eww
+*.ewp
+*.ewd
+*.dni
+*.wsdt
+*.dbgdt
+
+# Atollic TrueSTUDIO
+Debug/
+.cproject
+.project
+
+# Generated code (STM32CubeMX)
+Core/Src/main.c       # Keep your customized version, ignore generated
+Core/Inc/main.h       # Keep your customized version, ignore generated
+*.ioc.bak
+
+# Hex and binary files (can be regenerated)
+*.hex
+*.bin
+*.elf
+*.s19
+
+##############################################################################
+# GENERAL DEVELOPMENT
+##############################################################################
+
+# Git
+*.orig
+*.rej
+
+# Patches
+*.patch
+*.diff
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Network configuration (contains sensitive info)
+network_config.txt
+wifi_config.txt
+
+##############################################################################
+# PROJECT SPECIFIC
+##############################################################################
+
+# Configuration files with sensitive data
+config.ini
+secrets.txt
+*.key
+*.pem
+
+# Test data
+test_data/
+samples/
+
+# Documentation builds
+docs/_build/
+*.pdf
+
+# Backup files
+*.backup
+*_backup.*
+
+##############################################################################
+# KEEP THESE FILES (examples of what NOT to ignore)
+##############################################################################
+
+# !README.md
+# !LICENSE
+# !Makefile
+# !CMakeLists.txt
+# !*.cpp
+# !*.c
+# !*.h
+# !*.hpp
+# !*.py
+# !installation_guide.md
